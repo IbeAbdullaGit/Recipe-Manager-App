@@ -1,39 +1,52 @@
 import React from 'react';
-import { Card, Badge } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { 
+  Card, 
+  CardHeader, 
+  CardTitle, 
+  CardContent, 
+  CardFooter 
+} from './ui/card';
+import { Button } from './ui/button';
 
 const RecipeCard = ({ recipe }) => {
   return (
-    <Card className="h-100 shadow-sm">
-      <Card.Body>
-        <Card.Title>{recipe.title}</Card.Title>
-        
-        <div className="mb-2">
+    <Card className="h-full overflow-hidden transition-all hover:shadow-md">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-xl">{recipe.title}</CardTitle>
+      </CardHeader>
+      
+      <CardContent className="pb-2">
+        <div className="flex flex-wrap gap-2 mb-2">
           {recipe.category && (
-            <Badge bg="info" className="me-2">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
               {recipe.category}
-            </Badge>
+            </span>
           )}
-          <Badge bg="secondary">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
             {recipe.prep_time} mins
-          </Badge>
+          </span>
         </div>
         
         {recipe.ingredients && (
-          <Card.Text>
-            <small>
-              {recipe.ingredients.length} ingredients
-            </small>
-          </Card.Text>
+          <p className="text-sm text-muted-foreground">
+            {recipe.ingredients.length} ingredients
+          </p>
         )}
-        
-        <Link 
-          to={`/recipe/${recipe.id}`} 
-          className="btn btn-outline-primary btn-sm mt-2"
+      </CardContent>
+      
+      <CardFooter className="pt-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full"
+          asChild
         >
-          View Recipe
-        </Link>
-      </Card.Body>
+          <Link to={`/recipe/${recipe.id}`}>
+            View Recipe
+          </Link>
+        </Button>
+      </CardFooter>
     </Card>
   );
 };

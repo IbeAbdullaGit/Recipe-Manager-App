@@ -110,8 +110,13 @@ app.get('/api/recipes', (req, res) => {
 app.get('/api/recipes/:id', (req, res) => {
   const id = req.params.id;
   
-  // Get recipe details
-  db.get('SELECT * FROM recipes WHERE id = ?', [id], (err, recipe) => {
+  // Get recipe details with category name
+  db.get(`
+    SELECT r.*, c.name as category_name
+    FROM recipes r
+    LEFT JOIN categories c ON r.category_id = c.id
+    WHERE r.id = ?
+  `, [id], (err, recipe) => {
     if (err) {
       return res.status(500).json({ error: err.message });
     }
@@ -227,6 +232,138 @@ app.get('/api/categories', (req, res) => {
       return res.status(500).json({ error: err.message });
     }
     res.json(rows);
+  });
+});
+
+// Get all ingredients
+app.get('/api/ingredients', (req, res) => {
+  db.all('SELECT * FROM ingredients ORDER BY name', [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(rows);
+  });
+});
+
+// Update existing recipe
+app.put('/api/recipes/:id', (req, res) => {
+  const id = req.params.id;
+  const { title, category_id, directions, prep_time, serving_size, notes, ingredients } = req.body;
+  
+  db.serialize(() => {
+    // Begin transaction
+    db.run('BEGIN TRANSACTION');
+    
+    // Update recipe
+    db.run(
+      `UPDATE recipes 
+       SET title = ?, category_id = ?, directions = ?, prep_time = ?, serving_size = ?, notes = ?
+       WHERE id = ?`,
+      [title, category_id, directions, prep_time, serving_size, notes, id],
+      function(err) {
+        if (err) {
+          db.run('ROLLBACK');
+          return res.status(500).json({ error: err.message });
+        }
+        
+        // Delete existing recipe_ingredients
+        db.run('DELETE FROM recipe_ingredients WHERE recipe_id = ?', [id], function(err) {
+          if (err) {
+            db.run('ROLLBACK');
+            return res.status(500).json({ error: err.message });
+          }
+          
+          let pendingIngredients = ingredients.length;
+          
+          // No ingredients to add
+          if (pendingIngredients === 0) {
+            db.run('COMMIT');
+            return res.json({ id, ...req.body });
+          }
+          
+          // Insert updated ingredients
+          ingredients.forEach(ing => {
+            // Check if ingredient exists
+            db.get('SELECT id FROM ingredients WHERE name = ?', [ing.name], (err, row) => {
+              if (err) {
+                db.run('ROLLBACK');
+                return res.status(500).json({ error: err.message });
+              }
+              
+              let ingredientId;
+              
+              if (row) {
+                ingredientId = row.id;
+                addRecipeIngredient();
+              } else {
+                // Create new ingredient
+                db.run('INSERT INTO ingredients (name) VALUES (?)', [ing.name], function(err) {
+                  if (err) {
+                    db.run('ROLLBACK');
+                    return res.status(500).json({ error: err.message });
+                  }
+                  
+                  ingredientId = this.lastID;
+                  addRecipeIngredient();
+                });
+              }
+              
+              function addRecipeIngredient() {
+                // Add to junction table
+                db.run(
+                  `INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity, unit, is_alternative, alternative_for)
+                   VALUES (?, ?, ?, ?, ?, ?)`,
+                  [id, ingredientId, ing.quantity, ing.unit, ing.is_alternative ? 1 : 0, ing.alternative_for || null],
+                  function(err) {
+                    if (err) {
+                      db.run('ROLLBACK');
+                      return res.status(500).json({ error: err.message });
+                    }
+                    
+                    pendingIngredients--;
+                    
+                    // If all ingredients are processed, commit transaction
+                    if (pendingIngredients === 0) {
+                      db.run('COMMIT');
+                      res.json({ id, ...req.body });
+                    }
+                  }
+                );
+              }
+            });
+          });
+        });
+      }
+    );
+  });
+});
+
+// Delete recipe
+app.delete('/api/recipes/:id', (req, res) => {
+  const id = req.params.id;
+  
+  db.serialize(() => {
+    // Begin transaction
+    db.run('BEGIN TRANSACTION');
+    
+    // Delete recipe_ingredients first (foreign key constraint)
+    db.run('DELETE FROM recipe_ingredients WHERE recipe_id = ?', [id], function(err) {
+      if (err) {
+        db.run('ROLLBACK');
+        return res.status(500).json({ error: err.message });
+      }
+      
+      // Delete the recipe
+      db.run('DELETE FROM recipes WHERE id = ?', [id], function(err) {
+        if (err) {
+          db.run('ROLLBACK');
+          return res.status(500).json({ error: err.message });
+        }
+        
+        db.run('COMMIT');
+        res.json({ message: 'Recipe deleted successfully' });
+      });
+    });
   });
 });
 
