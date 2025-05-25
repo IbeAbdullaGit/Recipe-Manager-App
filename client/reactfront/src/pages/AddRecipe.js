@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Form, Button, Row, Col, Card, Alert, Modal, Spinner } from 'react-bootstrap';
+import { Modal, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import { Select } from '../components/ui/select';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { Plus, Minus, Download, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
 const AddRecipe = () => {
@@ -167,208 +175,229 @@ const AddRecipe = () => {
   };
   
   return (
-    <Container className="py-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Add New Recipe</h1>
+    <div className="container mx-auto py-6 px-4 max-w-4xl">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Add New Recipe</h1>
         <Button 
-          variant="outline-primary" 
+          variant="outline" 
           onClick={() => setShowImportModal(true)}
+          className="flex items-center gap-2"
         >
+          <Download className="h-4 w-4" />
           Import from URL
         </Button>
       </div>
       
-      {error && <Alert variant="danger">{error}</Alert>}
-      {success && <Alert variant="success">Recipe added successfully! Redirecting...</Alert>}
-      {dataImported && <Alert variant="info" dismissible onClose={() => setDataImported(false)}>
-        Recipe data imported! Please review the information below!
-      </Alert>}
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      {success && (
+        <Alert variant="success" className="mb-4">
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>Recipe added successfully! Redirecting...</AlertDescription>
+        </Alert>
+      )}
+      {dataImported && (
+        <Alert className="mb-4">
+          <CheckCircle className="h-4 w-4" />
+          <AlertDescription>
+            Recipe data imported! Please review the information below!
+          </AlertDescription>
+        </Alert>
+      )}
       
-      <Form onSubmit={handleSubmit}>
-        <Card className="mb-4">
-          <Card.Body>
-            <Card.Title>Recipe Details</Card.Title>
-            
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Recipe Title *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="title"
-                    value={recipe.title}
-                    onChange={handleChange}
-                    placeholder="e.g. Chocolate Chip Cookies"
-                    required
-                  />
-                </Form.Group>
-              </Col>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Recipe Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Recipe Title *</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  value={recipe.title}
+                  onChange={handleChange}
+                  placeholder="e.g. Chocolate Chip Cookies"
+                  required
+                />
+              </div>
               
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Category</Form.Label>
-                  <Form.Select
-                    name="category_id"
-                    value={recipe.category_id}
-                    onChange={handleChange}
-                  >
-                    <option value="">Select a category</option>
-                    {categories.map(category => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
+              <div className="space-y-2">
+                <Label htmlFor="category_id">Category</Label>
+                <Select
+                  id="category_id"
+                  name="category_id"
+                  value={recipe.category_id}
+                  onChange={handleChange}
+                >
+                  <option value="">Select a category</option>
+                  {categories.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </div>
             
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Preparation Time (minutes) *</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="prep_time"
-                    value={recipe.prep_time}
-                    onChange={handleChange}
-                    placeholder="e.g. 30"
-                    required
-                  />
-                </Form.Group>
-              </Col>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="prep_time">Preparation Time (minutes) *</Label>
+                <Input
+                  id="prep_time"
+                  type="number"
+                  name="prep_time"
+                  value={recipe.prep_time}
+                  onChange={handleChange}
+                  placeholder="e.g. 30"
+                  required
+                />
+              </div>
               
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Serving Size</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="serving_size"
-                    value={recipe.serving_size}
-                    onChange={handleChange}
-                    placeholder="e.g. 4"
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-          </Card.Body>
+              <div className="space-y-2">
+                <Label htmlFor="serving_size">Serving Size</Label>
+                <Input
+                  id="serving_size"
+                  type="number"
+                  name="serving_size"
+                  value={recipe.serving_size}
+                  onChange={handleChange}
+                  placeholder="e.g. 4"
+                />
+              </div>
+            </div>
+          </CardContent>
         </Card>
         
-        <Card className="mb-4">
-          <Card.Body>
-            <Card.Title>Ingredients</Card.Title>
-            
+        <Card>
+          <CardHeader>
+            <CardTitle>Ingredients</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             {recipe.ingredients.map((ingredient, index) => (
-              <Row key={index} className="mb-3 align-items-center">
-                <Col md={5}>
-                  <Form.Group>
-                    <Form.Label>Ingredient Name *</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={ingredient.name}
-                      onChange={(e) => handleIngredientChange(index, 'name', e.target.value)}
-                      placeholder="e.g. Flour"
-                      required
-                    />
-                  </Form.Group>
-                </Col>
+              <div key={index} className="grid grid-cols-12 gap-4 items-end">
+                <div className="col-span-5 space-y-2">
+                  <Label htmlFor={`ingredient-name-${index}`}>Ingredient Name *</Label>
+                  <Input
+                    id={`ingredient-name-${index}`}
+                    value={ingredient.name}
+                    onChange={(e) => handleIngredientChange(index, 'name', e.target.value)}
+                    placeholder="e.g. Flour"
+                    required
+                  />
+                </div>
                 
-                <Col md={2}>
-                  <Form.Group>
-                    <Form.Label>Quantity</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={ingredient.quantity}
-                      onChange={(e) => handleIngredientChange(index, 'quantity', e.target.value)}
-                      placeholder="e.g. 2"
-                    />
-                  </Form.Group>
-                </Col>
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor={`ingredient-quantity-${index}`}>Quantity</Label>
+                  <Input
+                    id={`ingredient-quantity-${index}`}
+                    value={ingredient.quantity}
+                    onChange={(e) => handleIngredientChange(index, 'quantity', e.target.value)}
+                    placeholder="2"
+                  />
+                </div>
                 
-                <Col md={3}>
-                  <Form.Group>
-                    <Form.Label>Unit</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={ingredient.unit}
-                      onChange={(e) => handleIngredientChange(index, 'unit', e.target.value)}
-                      placeholder="e.g. cups"
-                    />
-                  </Form.Group>
-                </Col>
+                <div className="col-span-3 space-y-2">
+                  <Label htmlFor={`ingredient-unit-${index}`}>Unit</Label>
+                  <Input
+                    id={`ingredient-unit-${index}`}
+                    value={ingredient.unit}
+                    onChange={(e) => handleIngredientChange(index, 'unit', e.target.value)}
+                    placeholder="cups"
+                  />
+                </div>
                 
-                <Col md={2} className="d-flex align-items-end">
+                <div className="col-span-2 flex justify-end">
                   {index > 0 && (
                     <Button 
-                      variant="outline-danger" 
+                      type="button"
+                      variant="outline" 
+                      size="sm"
                       onClick={() => removeIngredient(index)}
-                      className="mt-2"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      Remove
+                      <Minus className="h-4 w-4" />
                     </Button>
                   )}
-                </Col>
-              </Row>
+                </div>
+              </div>
             ))}
             
             <Button 
-              variant="outline-primary" 
+              type="button"
+              variant="outline" 
               onClick={addIngredient}
-              className="mt-2"
+              className="flex items-center gap-2"
             >
+              <Plus className="h-4 w-4" />
               Add Ingredient
             </Button>
-          </Card.Body>
+          </CardContent>
         </Card>
         
-        <Card className="mb-4">
-          <Card.Body>
-            <Card.Title>Instructions</Card.Title>
-            
-            <Form.Group className="mb-3">
-              <Form.Label>Directions *</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={5}
+        <Card>
+          <CardHeader>
+            <CardTitle>Instructions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="directions">Directions *</Label>
+              <Textarea
+                id="directions"
                 name="directions"
                 value={recipe.directions}
                 onChange={handleChange}
                 placeholder="Step-by-step instructions for preparing the recipe..."
+                rows={5}
                 required
               />
-            </Form.Group>
+            </div>
             
-            <Form.Group className="mb-3">
-              <Form.Label>Additional Notes</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
+            <div className="space-y-2">
+              <Label htmlFor="notes">Additional Notes</Label>
+              <Textarea
+                id="notes"
                 name="notes"
                 value={recipe.notes}
                 onChange={handleChange}
                 placeholder="Optional notes, tips, or variations..."
+                rows={3}
               />
-            </Form.Group>
-          </Card.Body>
+            </div>
+          </CardContent>
         </Card>
         
-        <div className="d-flex justify-content-between">
+        <div className="flex justify-between pt-6">
           <Button 
-            variant="secondary" 
+            type="button"
+            variant="outline" 
             onClick={() => navigate('/')}
           >
             Cancel
           </Button>
           
           <Button 
-            variant="primary" 
             type="submit"
             disabled={loading}
+            className="flex items-center gap-2"
           >
-            {loading ? 'Saving...' : 'Save Recipe'}
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save Recipe'
+            )}
           </Button>
         </div>
-      </Form>
+      </form>
       
       {/* Import Recipe Modal */}
       <Modal show={showImportModal} onHide={() => setShowImportModal(false)} size="lg">
@@ -376,30 +405,41 @@ const AddRecipe = () => {
           <Modal.Title>Import Recipe from URL</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {importError && <Alert variant="danger">{importError}</Alert>}
-          {importSuccess && <Alert variant="success">Recipe imported successfully! The form has been populated with the extracted data.</Alert>}
+          {importError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{importError}</AlertDescription>
+            </Alert>
+          )}
+          {importSuccess && (
+            <Alert variant="success" className="mb-4">
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>Recipe imported successfully! The form has been populated with the extracted data.</AlertDescription>
+            </Alert>
+          )}
           
-          <Form.Group className="mb-3">
-            <Form.Label>Recipe URL</Form.Label>
-            <Form.Control
-              type="url"
-              value={importUrl}
-              onChange={(e) => setImportUrl(e.target.value)}
-              placeholder="https://example.com/recipe-page"
-              disabled={importLoading}
-            />
-            <Form.Text className="text-muted">
-              Paste a URL from popular recipe websites or Instagram posts. We'll extract the recipe details automatically.
-            </Form.Text>
-          </Form.Group>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="import-url">Recipe URL</Label>
+              <Input
+                id="import-url"
+                type="url"
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+                placeholder="https://example.com/recipe-page"
+                disabled={importLoading}
+              />
+              <p className="text-sm text-gray-600">
+                Paste a URL from popular recipe websites or Instagram posts. We'll extract the recipe details automatically.
+              </p>
+            </div>
           
           <div className="mt-3">
             <h6>Supported Sources:</h6>
             <ul className="small text-muted mb-0">
               <li>Popular cooking websites (AllRecipes, Food Network, BBC Good Food, etc.)</li>
-              <li>Food blogs with structured recipe data</li>
+              <li>Food blogs</li>
               <li>Instagram recipe posts (limited - may require manual editing)</li>
-              <li>Any website using Recipe schema markup</li>
             </ul>
           </div>
           
@@ -407,10 +447,10 @@ const AddRecipe = () => {
             <h6>Tips:</h6>
             <ul className="small text-muted mb-0">
               <li>For best results, use the direct recipe page URL</li>
-              <li>Instagram videos have limited parsing - you may need to edit the results</li>
               <li>Review and edit the imported data before saving</li>
-              <li>Don't forget to select a category after importing</li>
+              <li>Instagram videos have limited parsing - you may need to edit for the best results</li>
             </ul>
+          </div>
           </div>
         </Modal.Body>
         <Modal.Footer>
@@ -442,7 +482,7 @@ const AddRecipe = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-    </Container>
+    </div>
   );
 };
 

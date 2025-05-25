@@ -38,6 +38,11 @@ const HomePage = () => {
     fetchData();
   }, []);
 
+  // Handle recipe deletion
+  const handleRecipeDelete = (deletedRecipeId) => {
+    setRecipes(recipes.filter(recipe => recipe.id !== deletedRecipeId));
+  };
+
   // Filter and sort recipes
   const filteredRecipes = recipes
     .filter(recipe => 
@@ -123,7 +128,7 @@ const HomePage = () => {
         {filteredRecipes.length > 0 ? (
           filteredRecipes.map(recipe => (
             <Col key={recipe.id}>
-              <RecipeCard recipe={recipe} />
+              <RecipeCard recipe={recipe} onDelete={handleRecipeDelete} />
             </Col>
           ))
         ) : (
