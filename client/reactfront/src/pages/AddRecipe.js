@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Form, Button, Row, Col, Card, Alert } from 'react-bootstrap';
+import { Container, Form, Button, Row, Col, Card, Alert, Modal, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -9,6 +9,14 @@ const AddRecipe = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  
+  // Import state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importUrl, setImportUrl] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState('');
+  const [importSuccess, setImportSuccess] = useState(false);
+  const [dataImported, setDataImported] = useState(false);
   
   // Form state
   const [recipe, setRecipe] = useState({
@@ -69,25 +77,33 @@ const AddRecipe = () => {
     e.preventDefault();
     
     // Basic validation
-    if (!recipe.title || !recipe.category_id || !recipe.directions) {
+    if (!recipe.title || !recipe.directions) {
       setError('Please fill in all required fields.');
       return;
     }
     
-    // Make sure all ingredients have at least a name
-    for (let i = 0; i < recipe.ingredients.length; i++) {
-      if (!recipe.ingredients[i].name) {
-        setError('All ingredients must have a name.');
-        return;
-      }
+    // Filter out ingredients with empty names and validate
+    const validIngredients = recipe.ingredients.filter(ingredient => 
+      ingredient.name && ingredient.name.trim() !== ''
+    );
+    
+    if (validIngredients.length === 0) {
+      setError('At least one ingredient with a name is required.');
+      return;
     }
+    
+    // Create the recipe data with only valid ingredients
+    const recipeToSubmit = {
+      ...recipe,
+      ingredients: validIngredients
+    };
     
     try {
       setLoading(true);
       setError('');
       
       // Send data to API
-      await axios.post('/api/recipes', recipe);
+      await axios.post('/api/recipes', recipeToSubmit);
       
       setSuccess(true);
       setLoading(false);
@@ -103,12 +119,70 @@ const AddRecipe = () => {
     }
   };
   
+  // Handle recipe import
+  const handleImportRecipe = async () => {
+    if (!importUrl.trim()) {
+      setImportError('Please enter a valid URL');
+      return;
+    }
+    
+    setImportLoading(true);
+    setImportError('');
+    setImportSuccess(false);
+    
+    try {
+      const response = await axios.post('/api/import-recipe', { url: importUrl });
+      const importedRecipe = response.data;
+      
+      // Update the form with imported data
+      setRecipe({
+        title: importedRecipe.title || '',
+        category_id: '',
+        prep_time: importedRecipe.prep_time || '',
+        serving_size: importedRecipe.serving_size || '',
+        directions: importedRecipe.directions || '',
+        notes: importedRecipe.notes || '',
+        ingredients: importedRecipe.ingredients.length > 0 ? importedRecipe.ingredients : [{ name: '', quantity: '', unit: '', is_alternative: false }]
+      });
+      
+      setImportSuccess(true);
+      setImportLoading(false);
+      setDataImported(true);
+      
+      // Show success and close modal after a delay
+      setTimeout(() => {
+        setShowImportModal(false);
+        setImportUrl('');
+        setImportSuccess(false);
+      }, 2000);
+      
+      // Show success message
+      setError('');
+      
+    } catch (err) {
+      setImportError(err.response?.data?.error || 'Failed to import recipe. Please try again.');
+      setImportLoading(false);
+      console.error('Error importing recipe:', err);
+    }
+  };
+  
   return (
     <Container className="py-4">
-      <h1 className="mb-4">Add New Recipe</h1>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1>Add New Recipe</h1>
+        <Button 
+          variant="outline-primary" 
+          onClick={() => setShowImportModal(true)}
+        >
+          Import from URL
+        </Button>
+      </div>
       
       {error && <Alert variant="danger">{error}</Alert>}
       {success && <Alert variant="success">Recipe added successfully! Redirecting...</Alert>}
+      {dataImported && <Alert variant="info" dismissible onClose={() => setDataImported(false)}>
+        Recipe data imported! Please review the information below!
+      </Alert>}
       
       <Form onSubmit={handleSubmit}>
         <Card className="mb-4">
@@ -132,12 +206,11 @@ const AddRecipe = () => {
               
               <Col md={6}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Category *</Form.Label>
+                  <Form.Label>Category</Form.Label>
                   <Form.Select
                     name="category_id"
                     value={recipe.category_id}
                     onChange={handleChange}
-                    required
                   >
                     <option value="">Select a category</option>
                     {categories.map(category => (
@@ -296,6 +369,79 @@ const AddRecipe = () => {
           </Button>
         </div>
       </Form>
+      
+      {/* Import Recipe Modal */}
+      <Modal show={showImportModal} onHide={() => setShowImportModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Import Recipe from URL</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {importError && <Alert variant="danger">{importError}</Alert>}
+          {importSuccess && <Alert variant="success">Recipe imported successfully! The form has been populated with the extracted data.</Alert>}
+          
+          <Form.Group className="mb-3">
+            <Form.Label>Recipe URL</Form.Label>
+            <Form.Control
+              type="url"
+              value={importUrl}
+              onChange={(e) => setImportUrl(e.target.value)}
+              placeholder="https://example.com/recipe-page"
+              disabled={importLoading}
+            />
+            <Form.Text className="text-muted">
+              Paste a URL from popular recipe websites or Instagram posts. We'll extract the recipe details automatically.
+            </Form.Text>
+          </Form.Group>
+          
+          <div className="mt-3">
+            <h6>Supported Sources:</h6>
+            <ul className="small text-muted mb-0">
+              <li>Popular cooking websites (AllRecipes, Food Network, BBC Good Food, etc.)</li>
+              <li>Food blogs with structured recipe data</li>
+              <li>Instagram recipe posts (limited - may require manual editing)</li>
+              <li>Any website using Recipe schema markup</li>
+            </ul>
+          </div>
+          
+          <div className="mt-3">
+            <h6>Tips:</h6>
+            <ul className="small text-muted mb-0">
+              <li>For best results, use the direct recipe page URL</li>
+              <li>Instagram videos have limited parsing - you may need to edit the results</li>
+              <li>Review and edit the imported data before saving</li>
+              <li>Don't forget to select a category after importing</li>
+            </ul>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="secondary" 
+            onClick={() => {
+              setShowImportModal(false);
+              setImportUrl('');
+              setImportError('');
+              setImportSuccess(false);
+            }}
+            disabled={importLoading}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleImportRecipe}
+            disabled={importLoading || !importUrl.trim()}
+          >
+            {importLoading ? (
+              <>
+                <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
+                Importing...
+              </>
+            ) : (
+              'Import Recipe'
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };
